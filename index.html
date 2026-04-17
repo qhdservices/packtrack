@@ -8,7 +8,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PackTrack Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -173,17 +172,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #cam-modal.open{display:flex;}
 #cam-video{flex:1;width:100%;object-fit:cover;}
 .cam-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
-.scan-frame{width:280px;height:110px;border:2px solid var(--accent);border-radius:8px;position:relative;box-shadow:0 0 0 3000px rgba(0,0,0,.55);}
-.scan-line{position:absolute;left:0;right:0;height:2px;background:var(--accent);animation:scanmove 2s ease-in-out infinite;}
-@keyframes scanmove{0%{top:4px;opacity:1}50%{top:102px;opacity:.6}100%{top:4px;opacity:1}}
 .photo-frame{width:min(90vw,360px);height:220px;border:2px solid rgba(255,255,255,.45);border-radius:8px;box-shadow:0 0 0 3000px rgba(0,0,0,.5);}
 .cam-label{margin-top:18px;font-family:var(--font-mono);font-size:12px;color:rgba(255,255,255,.65);text-align:center;}
 .cam-bar{position:absolute;bottom:0;left:0;right:0;padding:20px 24px 36px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%);}
 .shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.35);cursor:pointer;box-shadow:0 0 0 2px rgba(255,255,255,.2);}
 .cam-cancel{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:10px 18px;border-radius:6px;cursor:pointer;font-family:var(--font-mono);font-size:12px;}
 .cam-manual{background:rgba(245,158,11,.15);border:1px solid var(--accentd);color:var(--accent);padding:10px 18px;border-radius:6px;cursor:pointer;font-family:var(--font-mono);font-size:12px;}
-.cam-detect-flash{position:absolute;inset:0;background:rgba(245,158,11,.25);animation:detectflash .35s ease-out forwards;}
-@keyframes detectflash{0%{opacity:1}100%{opacity:0}}
+
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;}
@@ -248,10 +243,8 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <div class="wizard-step active" id="wz-step-1">
         <div class="card">
           <div class="card-title">■ TRACKING NUMBER</div>
-          <div class="input-row">
-            <input class="input-field" id="track-input" placeholder="1Z000000000000000" style="margin-bottom:0;">
-            <button class="icon-btn" onclick="camScanTracking()" title="Scan barcode">⬚</button>
-          </div>
+          <p style="font-size:12px;color:var(--dim);margin-bottom:10px;">Tap the field and use your keyboard barcode scanner or type manually.</p>
+          <input class="input-field" id="track-input" placeholder="1Z000000000000000" autocomplete="off" autocorrect="off" spellcheck="false">
         </div>
         <button class="btn btn-primary" onclick="confirmTracking()">CONFIRM TRACKING →</button>
       </div>
@@ -286,12 +279,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <div class="wizard-step" id="wz-step-3">
         <div class="card">
           <div class="card-title">■ ITEM MANIFEST</div>
-          <div class="mode-pill"><div class="pulse-dot"></div>SCAN READY</div>
-          <div class="btn-row">
-            <button class="btn btn-secondary" onclick="camScanItem()">⬚  SCAN BARCODE</button>
-            <button class="btn btn-ghost btn-sm" style="flex:none;width:auto;padding:13px 14px;" onclick="addItemManual()">+ MANUAL</button>
+          <p style="font-size:12px;color:var(--dim);margin-bottom:10px;">Scan barcode with your keyboard scanner app or type it, then tap ＋.</p>
+          <div class="input-row" style="margin-bottom:8px;">
+            <input class="input-field" id="barcode-input" placeholder="Scan or type barcode..." autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addItemFromInput()">
+            <button class="icon-btn" onclick="addItemFromInput()">＋</button>
           </div>
-          <div id="item-list" style="margin-top:12px;"></div>
+          <button class="btn btn-ghost btn-sm" style="width:auto;margin-bottom:8px;" onclick="addItemManual()">+ ADD BLANK ITEM</button>
+          <div id="item-list" style="margin-top:4px;"></div>
           <p id="no-items-msg" style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--dim2);padding:14px 0;">NO ITEMS ADDED YET</p>
         </div>
         <div class="card">
@@ -337,6 +331,13 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
     <!-- ═══ SETTINGS ═══ -->
     <div id="view-settings" class="view">
       <div class="section-label" style="margin-bottom:16px;">⚙  CONFIGURATION</div>
+
+      <div class="settings-section">
+        <h3>ANTHROPIC API KEY (FOR AI EXTRACTION)</h3>
+        <p class="step-note">Required for AI to read shipping labels and packing lists. Get your key at <b>console.anthropic.com</b> → API Keys. It is stored only on this device.</p>
+        <label class="input-label">API Key</label>
+        <input class="input-field" id="api-key" type="password" placeholder="sk-ant-..." oninput="saveSettings()">
+      </div>
 
       <div class="settings-section">
         <h3>GOOGLE SHEETS + DRIVE SYNC</h3>
@@ -389,15 +390,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <div id="cam-modal">
   <video id="cam-video" autoplay playsinline muted></video>
   <div class="cam-overlay" id="cam-overlay">
-    <div id="cam-frame" class="scan-frame"><div class="scan-line"></div></div>
-    <div class="cam-label" id="cam-label">ALIGN BARCODE WITHIN FRAME</div>
+    <div id="cam-frame" class="photo-frame"></div>
+    <div class="cam-label" id="cam-label">TAP BUTTON TO CAPTURE</div>
   </div>
   <div class="cam-bar">
     <button class="cam-cancel" onclick="closeCam()">CANCEL</button>
-    <div id="shutter-wrap" style="display:none;">
+    <div id="shutter-wrap">
       <button class="shutter" id="shutter" onclick="fireShutter()"></button>
     </div>
-    <button class="cam-manual" id="cam-manual-btn" onclick="manualBarcodeEntry()" style="display:none;">TYPE IT</button>
+    <div style="width:70px;"></div>
   </div>
 </div>
 
@@ -413,10 +414,8 @@ let cfg = JSON.parse(localStorage.getItem('pt_cfg') || '{"webhookUrl":""}');
 let cur = null; // current package being built
 let step = 1;
 let toastT = null;
-let camMode = 'scan'; // 'scan' | 'photo'
 let camCallback = null;
 let camStream = null;
-let zxReader = null;
 
 // ════════════════════════════════════════
 //  INIT
@@ -424,6 +423,7 @@ let zxReader = null;
 window.addEventListener('DOMContentLoaded', () => {
   renderDash();
   document.getElementById('webhook-url').value = cfg.webhookUrl || '';
+  document.getElementById('api-key').value = cfg.apiKey || '';
   initScript();
 });
 
@@ -554,14 +554,7 @@ function goStep(s) {
 }
 
 // ── STEP 1 ──
-function camScanTracking() {
-  openCam('scan', res => {
-    if (res.type === 'barcode') {
-      document.getElementById('track-input').value = res.value;
-      toast('✓ Scanned: ' + res.value.slice(0,16), 'success');
-    }
-  });
-}
+// camScanTracking removed — use keyboard scanner in text field
 
 function confirmTracking() {
   const v = document.getElementById('track-input').value.trim();
@@ -613,13 +606,15 @@ async function extractLabel(b64) {
 }
 
 // ── STEP 3 ──
-function camScanItem() {
-  openCam('scan', res => {
-    if (res.type !== 'barcode') return;
-    cur.items.push({ barcode: res.value, sku: '', description: '', quantity: 1, unit_price: '' });
-    renderItemList();
-    toast('✓ Item scanned', 'success');
-  });
+function addItemFromInput() {
+  const input = document.getElementById('barcode-input');
+  const val = input.value.trim();
+  if (!val) { toast('Enter or scan a barcode first', 'error'); return; }
+  cur.items.push({ barcode: val, sku: '', description: '', quantity: 1, unit_price: '' });
+  input.value = '';
+  input.focus();
+  renderItemList();
+  toast('✓ Item added: ' + val.slice(0, 16), 'success');
 }
 
 function addItemManual() {
@@ -787,55 +782,19 @@ function deletePkg(id) {
 //  CAMERA
 // ════════════════════════════════════════
 function openCam(mode, cb) {
-  closeCam(); // ensure previous closed
+  closeCam();
   camMode = mode;
   camCallback = cb;
   const modal = document.getElementById('cam-modal');
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
-
   const frame = document.getElementById('cam-frame');
-  const lbl = document.getElementById('cam-label');
-  const shutterWrap = document.getElementById('shutter-wrap');
-  const manualBtn = document.getElementById('cam-manual-btn');
-
-  if (mode === 'scan') {
-    frame.className = 'scan-frame';
-    frame.innerHTML = '<div class="scan-line"></div>';
-    lbl.textContent = 'ALIGN BARCODE WITHIN FRAME';
-    shutterWrap.style.display = 'none';
-    manualBtn.style.display = 'block';
-    startScan();
-  } else {
-    frame.className = 'photo-frame';
-    frame.innerHTML = '';
-    lbl.textContent = 'TAP BUTTON TO CAPTURE';
-    shutterWrap.style.display = 'block';
-    manualBtn.style.display = 'none';
-    startPhotoStream();
-  }
-}
-
-async function startScan() {
-  try {
-    if (!window.ZXing) throw new Error('Scanner library unavailable');
-    zxReader = new ZXing.BrowserMultiFormatReader();
-    await zxReader.decodeFromVideoDevice(undefined, 'cam-video', (result, err) => {
-      if (result) {
-        // flash
-        const fl = document.createElement('div');
-        fl.className = 'cam-detect-flash';
-        document.getElementById('cam-overlay').appendChild(fl);
-        setTimeout(() => fl.remove(), 350);
-        const cb = camCallback;
-        closeCam();
-        cb && cb({ type: 'barcode', value: result.text });
-      }
-    });
-  } catch (e) {
-    document.getElementById('cam-label').textContent = 'CAMERA ERROR — USE "TYPE IT"';
-    console.error(e);
-  }
+  frame.className = 'photo-frame';
+  frame.innerHTML = '';
+  document.getElementById('cam-label').textContent = 'TAP BUTTON TO CAPTURE';
+  document.getElementById('shutter-wrap').style.display = 'block';
+  document.getElementById('cam-manual-btn').style.display = 'none';
+  startPhotoStream();
 }
 
 async function startPhotoStream() {
@@ -869,7 +828,6 @@ function fireShutter() {
 function closeCam() {
   document.getElementById('cam-modal').classList.remove('open');
   document.body.style.overflow = '';
-  if (zxReader) { try { zxReader.reset(); } catch(e){} zxReader = null; }
   if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
   const vid = document.getElementById('cam-video');
   vid.srcObject = null;
@@ -877,22 +835,24 @@ function closeCam() {
   camCallback = null;
 }
 
-function manualBarcodeEntry() {
-  const cb = camCallback;
-  closeCam();
-  const val = prompt('Type the barcode or tracking number:');
-  if (val?.trim()) cb && cb({ type: 'barcode', value: val.trim() });
-}
+
 
 // ════════════════════════════════════════
 //  CLAUDE API
 // ════════════════════════════════════════
 async function claudeVision(b64, prompt) {
+  const key = cfg.apiKey || document.getElementById('api-key')?.value?.trim();
+  if (!key) throw new Error('No API key — add it in Config tab');
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5-20251001',
       max_tokens: 1000,
       messages: [{
         role: 'user',
@@ -1010,6 +970,7 @@ function dlCSV(name, rows) {
 // ════════════════════════════════════════
 function saveSettings() {
   cfg.webhookUrl = document.getElementById('webhook-url').value.trim();
+  cfg.apiKey = document.getElementById('api-key').value.trim();
   localStorage.setItem('pt_cfg', JSON.stringify(cfg));
 }
 
@@ -1027,7 +988,12 @@ function copyScript() {
 }
 
 function initScript() {
-  document.getElementById('script-code').textContent = `function doPost(e) {
+  document.getElementById('script-code').textContent = `function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({status:'PackTrack connected'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
   try {
     var data = JSON.parse(e.postData.contents);
     if (data.test) return ok({status:'connected'});
