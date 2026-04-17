@@ -247,6 +247,26 @@ body{
 
 /* ── DIVIDER ── */
 .divider{height:1px;background:var(--border);margin:16px 0;}
+
+/* ── ACTIVE FIELD INDICATOR ── */
+.field-group{margin-bottom:14px;}
+.fg-label{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.fg-label .fg-req{color:var(--red);font-size:16px;}
+.fg-cursor{display:none;width:9px;height:9px;background:var(--accent);border-radius:50%;flex-shrink:0;animation:pulsedot 1s ease-in-out infinite;}
+.field-group.fg-active .fg-label{color:var(--accent);}
+.field-group.fg-active .fg-cursor{display:inline-block;}
+.field-group.fg-active .input-field{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.14);}
+.field-confirmed{margin-top:6px;}
+
+/* ── SCAN BOX ── */
+.scan-box-wrap{background:var(--s2);border:2px solid var(--border2);border-radius:12px;padding:16px;transition:border-color .2s;}
+.scan-box-wrap.scanning{border-color:var(--accent);}
+.scan-count{font-family:var(--font-mono);font-size:64px;color:var(--accent);text-align:center;line-height:1;margin:8px 0 2px;}
+.scan-count-lbl{font-family:var(--font-mono);font-size:11px;color:var(--dim);text-align:center;letter-spacing:2.5px;margin-bottom:14px;}
+.scan-recent{background:var(--bg);border-radius:8px;padding:10px 12px;min-height:60px;font-family:var(--font-mono);font-size:13px;}
+.scan-recent-item{color:var(--text);padding:4px 0;border-bottom:1px solid var(--s3);display:flex;justify-content:space-between;align-items:center;}
+.scan-recent-item:last-child{border-bottom:none;}
+
 </style>
 </head>
 <body>
@@ -286,99 +306,100 @@ body{
       <div class="wizard-nav">
         <button class="back-btn" onclick="cancelWizard()">←</button>
         <div class="wizard-titles">
-          <div class="wizard-title" id="wz-title">STEP 1</div>
-          <div class="wizard-sub" id="wz-sub">Scan tracking number</div>
+          <div class="wizard-title" id="wz-title">RECEIVE PACKAGE</div>
+          <div class="wizard-sub" id="wz-sub">Enter package details</div>
         </div>
       </div>
       <div class="steps">
         <div class="step-bar active" id="sbar-1"></div>
         <div class="step-bar" id="sbar-2"></div>
-        <div class="step-bar" id="sbar-3"></div>
-        <div class="step-bar" id="sbar-4"></div>
       </div>
 
-      <!-- STEP 1: TRACKING -->
+      <!-- ── STEP 1: DATA ENTRY ── -->
       <div class="wizard-step active" id="wz-step-1">
-        <div class="card">
-          <div class="card-title">■ TRACKING NUMBER</div>
-          <div class="input-row">
-            <input class="input-field" id="track-input" placeholder="1Z000000000000000" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:0;">
-            <button class="icon-btn" onclick="camScanTracking()" title="Scan barcode">⬚</button>
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="confirmTracking()">CONFIRM TRACKING →</button>
-      </div>
 
-      <!-- STEP 2: LABEL PHOTO -->
-      <div class="wizard-step" id="wz-step-2">
+        <!-- Tracking Number -->
         <div class="card">
-          <div class="card-title">■ SHIPPING LABEL PHOTO</div>
+          <div class="field-group" id="fg-tracking">
+            <div class="fg-label"><div class="fg-cursor"></div>TRACKING NUMBER <span class="fg-req">*</span></div>
+            <input class="input-field" id="track-input" placeholder="Scan or type tracking number" autocomplete="off" autocorrect="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();confirmTrackingField();}"
+              oninput="document.getElementById('btn-confirm-track').style.display=this.value.trim()?'flex':'none';"
+              onfocus="setActiveField('fg-tracking')" onblur="clearActiveField()">
+            <button class="btn btn-secondary" onclick="confirmTrackingField()" id="btn-confirm-track" style="display:none;margin-top:6px;">✓ CONFIRM TRACKING</button>
+          </div>
+          <div id="track-confirmed" class="ai-status done field-confirmed" style="display:none;">✓ Tracking set — <span id="track-confirmed-val" style="font-family:var(--font-mono);"></span></div>
+        </div>
+
+        <!-- Shipping Label Photo -->
+        <div class="card">
+          <div class="card-title">📷 SHIPPING LABEL PHOTO</div>
           <img id="label-img" class="photo-thumb" alt="Label photo">
-          <button class="btn btn-secondary" id="btn-photo-label" onclick="camPhotoLabel()">📷  PHOTOGRAPH LABEL</button>
-          <div class="ai-status" id="label-ai">
-            <div class="spinner"></div><span id="label-ai-msg">AI analyzing label...</span>
+          <button class="btn btn-secondary" onclick="camPhotoLabel()">📷  PHOTOGRAPH LABEL</button>
+          <div class="ai-status" id="label-ai"></div>
+          <div id="label-data-card" style="display:none;margin-top:12px;">
+            <div class="ext-box" id="label-ext-box"></div>
           </div>
         </div>
-        <div class="card" id="label-data-card" style="display:none;">
-          <div class="card-title">■ EXTRACTED DATA — VERIFY &amp; EDIT</div>
-          <div class="ext-box" id="label-ext-box"></div>
-          <div style="margin-top:12px;">
-            <label class="input-label">Shipper (edit if wrong)</label>
-            <input class="input-field" id="edit-shipper" placeholder="Shipper name">
-            <label class="input-label">Recipient (edit if wrong)</label>
-            <input class="input-field" id="edit-recipient" placeholder="Recipient name">
+
+        <!-- Order Number -->
+        <div class="card">
+          <div class="field-group" id="fg-order">
+            <div class="fg-label"><div class="fg-cursor"></div>ORDER NUMBER <span class="fg-req">*</span></div>
+            <input class="input-field" id="order-input" placeholder="Scan or type order number" autocomplete="off" autocorrect="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();confirmOrderField();}"
+              oninput="document.getElementById('btn-confirm-order').style.display=this.value.trim()?'flex':'none';"
+              onfocus="setActiveField('fg-order')" onblur="clearActiveField()">
+            <button class="btn btn-secondary" onclick="confirmOrderField()" id="btn-confirm-order" style="display:none;margin-top:6px;">✓ CONFIRM ORDER #</button>
           </div>
+          <div id="order-confirmed" class="ai-status done field-confirmed" style="display:none;">✓ Order set — <span id="order-confirmed-val" style="font-family:var(--font-mono);"></span></div>
         </div>
-        <div class="btn-row">
-          <button class="btn btn-ghost" onclick="goStep(3)">SKIP PHOTO</button>
-          <button class="btn btn-primary" id="btn-step2-next" style="display:none;" onclick="goStep(3)">NEXT →</button>
+
+        <!-- Item Manifest Scan Box -->
+        <div class="card">
+          <div class="card-title">⬚ ITEM MANIFEST SCAN</div>
+          <div class="scan-box-wrap" id="scan-box-wrap">
+            <div class="field-group" id="fg-scanbox">
+              <div class="fg-label"><div class="fg-cursor"></div>SCAN ITEMS — ONE AT A TIME</div>
+              <input class="input-field" id="scan-box-input" placeholder="Barcode appears here after scan..." autocomplete="off" autocorrect="off" spellcheck="false"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();addBarcodeScan();}"
+                onfocus="setActiveField('fg-scanbox');document.getElementById('scan-box-wrap').classList.add('scanning');"
+                onblur="clearActiveField();document.getElementById('scan-box-wrap').classList.remove('scanning');">
+            </div>
+            <div class="scan-count" id="scan-count">0</div>
+            <div class="scan-count-lbl">ITEMS SCANNED</div>
+            <div class="scan-recent" id="scan-recent">
+              <div style="color:var(--dim2);font-size:12px;text-align:center;padding:8px 0;">Scans will appear here</div>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="width:auto;margin-top:12px;" onclick="addItemManual()">+ ADD ITEM MANUALLY</button>
+          <div id="manual-items" style="margin-top:8px;"></div>
         </div>
+
+        <button class="btn btn-primary" onclick="goReview()">REVIEW MANIFEST →</button>
       </div>
 
-      <!-- STEP 3: ITEMS -->
-      <div class="wizard-step" id="wz-step-3">
-        <div class="card">
-          <div class="card-title">■ PACKING LIST / INVOICE</div>
-          <img id="packing-img" class="photo-thumb" alt="Packing list">
-          <button class="btn btn-secondary" onclick="camPhotoPackingList()">📷  PHOTOGRAPH PACKING LIST</button>
-          <div class="ai-status" id="packing-ai">
-            <div class="spinner"></div><span id="packing-ai-msg">AI reading items...</span>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">■ ITEM MANIFEST</div>
-          <div class="mode-pill"><div class="pulse-dot"></div>SCAN READY</div>
-          <div class="btn-row">
-            <button class="btn btn-secondary" onclick="camScanItem()">⬚  SCAN BARCODE</button>
-            <button class="btn btn-ghost btn-sm" style="flex:none;width:auto;padding:13px 14px;" onclick="addItemManual()">+ MANUAL</button>
-          </div>
-          <div id="item-list" style="margin-top:12px;"></div>
-          <p id="no-items-msg" style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--dim2);padding:14px 0;">NO ITEMS ADDED YET</p>
-        </div>
-        <button class="btn btn-primary" style="margin-top:4px;" onclick="goStep(4)">REVIEW MANIFEST →</button>
-      </div>
-
-      <!-- STEP 4: REVIEW -->
-      <div class="wizard-step" id="wz-step-4">
+      <!-- ── STEP 2: REVIEW & SUBMIT ── -->
+      <div class="wizard-step" id="wz-step-2">
         <div class="review-track" id="review-track"></div>
         <div class="card">
-          <div class="card-title">■ PACKAGE INFO</div>
-          <div id="review-info"></div>
+          <div class="card-title">■ SCAN SUMMARY</div>
+          <div id="review-summary"></div>
         </div>
         <div class="card">
-          <div class="card-title">■ MANIFEST — <span id="review-item-ct">0</span> ITEMS</div>
+          <div class="card-title">■ MANIFEST — UNIQUE BARCODES</div>
           <div id="review-items"></div>
         </div>
         <div class="card">
           <div class="card-title">■ NOTES</div>
-          <textarea class="textarea-field" id="pkg-notes" rows="3" placeholder="Condition, damage, instructions..."></textarea>
+          <textarea class="textarea-field" id="pkg-notes" rows="3" placeholder="Condition, damage, any notes..." onfocus="setActiveField('')" onblur="clearActiveField()"></textarea>
         </div>
-        <button class="btn btn-primary" onclick="savePackage()">✓  SAVE TO LOG</button>
-        <button class="btn btn-ghost" style="margin-top:8px;" onclick="goStep(3)">← BACK</button>
+        <button class="btn btn-primary" onclick="savePackage()">✓  CONFIRM &amp; SAVE + PRINT</button>
+        <button class="btn btn-ghost" style="margin-top:10px;" onclick="goStep(1)">← BACK TO EDIT</button>
       </div>
     </div>
 
-    <!-- ═══ DETAIL ═══ -->
+        <!-- ═══ DETAIL ═══ -->
     <div id="view-detail" class="view">
       <div class="wizard-nav" style="margin-bottom:16px;">
         <button class="back-btn" onclick="showTab('log')">←</button>
@@ -523,7 +544,7 @@ function showView(v) {
 function renderDash() {
   const today = new Date().toDateString();
   const todayC = pkgs.filter(p => new Date(p.receivedAt).toDateString() === today).length;
-  const totalItems = pkgs.reduce((s, p) => s + (p.items?.length || 0), 0);
+  const totalItems = pkgs.reduce((s, p) => s + (p.rawScans?.length || p.items?.length || 0), 0);
   document.getElementById('stat-total').textContent = pkgs.length;
   document.getElementById('stat-today').textContent = todayC;
   document.getElementById('stat-items').textContent = totalItems;
@@ -537,11 +558,11 @@ function renderDash() {
     <div class="pkg-card" onclick="viewPkg('${p.id}')">
       <div class="pkg-tracking">${esc(p.tracking || 'NO TRACKING')}</div>
       <div class="pkg-meta">
-        <span>${esc(p.shipper_name || 'Unknown shipper')}</span>
+        <span>Order: ${esc(p.orderNumber || p.shipper_name || '—')}</span>
         <span class="badge ${p.uploaded ? 'badge-green' : 'badge-amber'}">${p.uploaded ? '✓ SYNCED' : '● LOCAL'}</span>
       </div>
       <div class="pkg-meta">
-        <span>${p.items?.length || 0} items</span>
+        <span>${(p.rawScans?.length || p.items?.length || 0)} items scanned</span>
         <span>${fmtDate(p.receivedAt)}</span>
       </div>
     </div>`).join('');
@@ -559,79 +580,110 @@ function startNewPackage() {
   cur = {
     id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2),
     receivedAt: new Date().toISOString(),
-    tracking: '', shipper_name: '', shipper_address: '',
+    tracking: '', orderNumber: '',
+    shipper_name: '', shipper_address: '',
     recipient_name: '', recipient_address: '',
     weight: '', service_type: '',
-    labelPhoto: null, items: [],
-    packingListPhoto: null,
-    po_number: '', invoice_number: '', total: '',
+    labelPhoto: null, labelPhotoName: '',
+    rawScans: [], manualItems: [], items: [],
     notes: '', uploaded: false
   };
   resetWizardUI();
   goStep(1);
   showView('wizard');
   document.getElementById('tab-log').classList.remove('active');
+  setTimeout(() => document.getElementById('track-input').focus(), 300);
 }
 
 function resetWizardUI() {
-  document.getElementById('track-input').value = '';
+  const ti = document.getElementById('track-input');
+  ti.value = ''; ti.disabled = false; ti.style.opacity = '';
+  document.getElementById('track-confirmed').style.display = 'none';
+  document.getElementById('btn-confirm-track').style.display = 'none';
+  const oi = document.getElementById('order-input');
+  oi.value = ''; oi.disabled = false; oi.style.opacity = '';
+  document.getElementById('order-confirmed').style.display = 'none';
+  document.getElementById('btn-confirm-order').style.display = 'none';
   document.getElementById('label-img').classList.remove('show');
   document.getElementById('label-data-card').style.display = 'none';
-  document.getElementById('btn-step2-next').style.display = 'none';
   setAIStatus('label-ai', '');
-  document.getElementById('packing-img').classList.remove('show');
-  setAIStatus('packing-ai', '');
+  document.getElementById('scan-box-input').value = '';
+  document.getElementById('scan-count').textContent = '0';
+  document.getElementById('scan-recent').innerHTML = '<div style="color:var(--dim2);font-size:12px;text-align:center;padding:8px 0;">Scans will appear here</div>';
+  document.getElementById('manual-items').innerHTML = '';
   document.getElementById('pkg-notes').value = '';
-  renderItemList();
 }
 
 function cancelWizard() {
-  if (cur && (cur.tracking || cur.items.length > 0)) {
+  if (cur && (cur.tracking || cur.rawScans.length > 0)) {
     if (!confirm('Cancel? Unsaved data will be lost.')) return;
   }
-  cur = null;
-  showTab('log');
-  renderDash();
+  cur = null; showTab('log'); renderDash();
+}
+
+function setActiveField(groupId) {
+  document.querySelectorAll('.field-group').forEach(g => g.classList.remove('fg-active'));
+  if (groupId) { const g = document.getElementById(groupId); if (g) g.classList.add('fg-active'); }
+}
+
+function clearActiveField() {
+  setTimeout(() => {
+    if (!document.activeElement || !document.activeElement.closest('.field-group'))
+      document.querySelectorAll('.field-group').forEach(g => g.classList.remove('fg-active'));
+  }, 150);
 }
 
 function goStep(s) {
   step = s;
   document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
   document.getElementById('wz-step-' + s).classList.add('active');
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 2; i++) {
     const b = document.getElementById('sbar-' + i);
     b.className = 'step-bar' + (i < s ? ' done' : i === s ? ' active' : '');
   }
   const meta = {
-    1: ['STEP 1: TRACKING', 'Scan or type the UPS tracking number'],
-    2: ['STEP 2: LABEL PHOTO', 'Photograph the shipping label for AI extraction'],
-    3: ['STEP 3: MANIFEST', 'Scan items and photograph packing list'],
-    4: ['STEP 4: REVIEW', 'Confirm all data and save to log']
+    1: ['RECEIVE PACKAGE', 'Tracking · Photo · Order # · Scan items'],
+    2: ['REVIEW MANIFEST', 'Confirm all scanned items before saving']
   };
   document.getElementById('wz-title').textContent = meta[s][0];
   document.getElementById('wz-sub').textContent = meta[s][1];
-  if (s === 4) renderReview();
   document.getElementById('main-scroll').scrollTop = 0;
+  if (s === 1) setTimeout(() => {
+    const tv = document.getElementById('track-input').value.trim();
+    if (!tv) document.getElementById('track-input').focus();
+    else document.getElementById('scan-box-input').focus();
+  }, 200);
 }
 
-// ── STEP 1 ──
-function camScanTracking() {
-  openCam('scan-tracking', res => {
-    if (res.type === 'barcode') {
-      document.getElementById('track-input').value = res.value;
-      toast('✓ Scanned: ' + res.value.slice(0,20), 'success');
-    }
-  });
-}
-
-function confirmTracking() {
+// ── TRACKING ──
+function confirmTrackingField() {
   const v = document.getElementById('track-input').value.trim();
-  if (!v) { toast('Enter or scan a tracking number', 'error'); return; }
+  if (!v) { toast('Enter or scan a tracking number first', 'error'); return; }
   cur.tracking = v;
-  goStep(2);
+  document.getElementById('track-confirmed').style.display = 'flex';
+  document.getElementById('track-confirmed-val').textContent = v;
+  document.getElementById('btn-confirm-track').style.display = 'none';
+  document.getElementById('track-input').disabled = true;
+  document.getElementById('track-input').style.opacity = '0.5';
+  toast('✓ Tracking confirmed', 'success');
+  setTimeout(() => document.getElementById('order-input').focus(), 200);
 }
 
-// ── STEP 2 ──
+// ── ORDER NUMBER ──
+function confirmOrderField() {
+  const v = document.getElementById('order-input').value.trim();
+  if (!v) { toast('Enter or scan an order number first', 'error'); return; }
+  cur.orderNumber = v;
+  document.getElementById('order-confirmed').style.display = 'flex';
+  document.getElementById('order-confirmed-val').textContent = v;
+  document.getElementById('btn-confirm-order').style.display = 'none';
+  document.getElementById('order-input').disabled = true;
+  document.getElementById('order-input').style.opacity = '0.5';
+  toast('✓ Order # confirmed', 'success');
+  setTimeout(() => document.getElementById('scan-box-input').focus(), 200);
+}
+
+// ── LABEL PHOTO ──
 function camPhotoLabel() {
   openCam('photo', async res => {
     if (res.type !== 'photo') return;
@@ -645,12 +697,7 @@ function camPhotoLabel() {
 
 async function extractLabel(b64) {
   const apiKey = cfg.apiKey || document.getElementById('api-key')?.value?.trim();
-  if (!apiKey) {
-    setAIStatus('label-ai', 'error', '✕ No API key — add it in Config tab first');
-    document.getElementById('label-data-card').style.display = 'block';
-    document.getElementById('btn-step2-next').style.display = 'flex';
-    return;
-  }
+  if (!apiKey) { setAIStatus('label-ai', 'error', '✕ No API key — add it in Config tab first'); return; }
   setAIStatus('label-ai', 'processing', 'AI analyzing shipping label...');
   try {
     const resp = await claudeVision(b64,
@@ -659,155 +706,229 @@ async function extractLabel(b64) {
     );
     const ex = JSON.parse(resp);
     Object.assign(cur, ex);
-    if (ex.tracking && !cur.tracking) cur.tracking = ex.tracking;
-    if (!document.getElementById('track-input').value && ex.tracking) {
+    if (ex.tracking && !document.getElementById('track-input').value) {
+      cur.tracking = ex.tracking;
       document.getElementById('track-input').value = ex.tracking;
     }
     document.getElementById('label-ext-box').innerHTML = [
-      ['TRACKING', ex.tracking], ['SHIPPER', ex.shipper_name],
-      ['SHIP FROM', ex.shipper_address], ['RECIPIENT', ex.recipient_name],
-      ['DELIVER TO', ex.recipient_address], ['WEIGHT', ex.weight], ['SERVICE', ex.service_type]
+      ['TRACKING', ex.tracking], ['SHIPPER', ex.shipper_name], ['SHIP FROM', ex.shipper_address],
+      ['RECIPIENT', ex.recipient_name], ['DELIVER TO', ex.recipient_address],
+      ['WEIGHT', ex.weight], ['SERVICE', ex.service_type]
     ].map(([k,v]) => `<div class="ext-row"><span class="ext-k">${k}</span><span class="ext-v">${esc(v||'—')}</span></div>`).join('');
-    document.getElementById('edit-shipper').value = ex.shipper_name || '';
-    document.getElementById('edit-recipient').value = ex.recipient_name || '';
     document.getElementById('label-data-card').style.display = 'block';
-    document.getElementById('btn-step2-next').style.display = 'flex';
-    setAIStatus('label-ai', 'done', '✓ Label data extracted successfully');
+    setAIStatus('label-ai', 'done', '✓ Label data extracted');
   } catch (e) {
-    const msg = e.message || 'Unknown error';
-    setAIStatus('label-ai', 'error', '✕ ' + msg);
-    document.getElementById('label-data-card').style.display = 'block';
-    document.getElementById('btn-step2-next').style.display = 'flex';
+    setAIStatus('label-ai', 'error', '✕ ' + (e.message || 'Unknown error'));
     console.error('Label extraction error:', e);
   }
 }
 
-// ── STEP 3 ──
-function camScanItem() {
-  openCam('scan-item', res => {
-    if (res.type !== 'barcode') return;
-    cur.items.push({ barcode: res.value, sku: '', description: '', quantity: 1, unit_price: '' });
-    renderItemList();
-    toast('✓ Item scanned', 'success');
-  });
+// ── MANIFEST SCAN BOX ──
+function addBarcodeScan() {
+  const input = document.getElementById('scan-box-input');
+  const val = input.value.trim();
+  if (!val) return;
+  cur.rawScans.push(val);
+  input.value = '';
+  input.focus();
+  updateScanDisplay();
 }
 
-function addItemManual() {
-  cur.items.push({ barcode: '', sku: '', description: '', quantity: 1, unit_price: '' });
-  renderItemList();
-}
-
-function renderItemList() {
-  const list = document.getElementById('item-list');
-  const msg = document.getElementById('no-items-msg');
-  if (!cur || !cur.items.length) {
-    list.innerHTML = '';
-    msg.style.display = 'block';
+function updateScanDisplay() {
+  document.getElementById('scan-count').textContent = cur.rawScans.length;
+  if (!cur.rawScans.length) {
+    document.getElementById('scan-recent').innerHTML = '<div style="color:var(--dim2);font-size:12px;text-align:center;padding:8px 0;">Scans will appear here</div>';
     return;
   }
-  msg.style.display = 'none';
-  list.innerHTML = cur.items.map((item, i) => `
+  const grouped = groupScans(cur.rawScans);
+  const recent = [...new Set(cur.rawScans.slice().reverse())].slice(0, 6);
+  document.getElementById('scan-recent').innerHTML = recent.map(bc =>
+    `<div class="scan-recent-item"><span>${esc(bc)}</span><span style="color:var(--accent);font-weight:bold;">×${grouped[bc]}</span></div>`
+  ).join('');
+}
+
+function groupScans(scans) {
+  const map = {};
+  scans.forEach(bc => { map[bc] = (map[bc] || 0) + 1; });
+  return map;
+}
+
+// ── MANUAL ITEMS ──
+function addItemManual() {
+  cur.manualItems = cur.manualItems || [];
+  cur.manualItems.push({ barcode: '', quantity: 1 });
+  renderManualItems();
+}
+
+function renderManualItems() {
+  const el = document.getElementById('manual-items');
+  if (!cur.manualItems || !cur.manualItems.length) { el.innerHTML = ''; return; }
+  el.innerHTML = cur.manualItems.map((it, i) => `
     <div class="item-entry">
       <div class="item-header">
-        <span class="item-barcode">${item.barcode ? '⬚ ' + esc(item.barcode) : '⊡ MANUAL ENTRY'}</span>
-        <button class="item-del" onclick="removeItem(${i})">✕</button>
+        <span class="item-barcode">MANUAL ENTRY ${i+1}</span>
+        <button class="item-del" onclick="removeManual(${i})">✕</button>
       </div>
-      <input class="input-field" style="margin-bottom:6px;font-size:12px;padding:7px 9px;" placeholder="Description or SKU..." value="${esc(item.description||'')}" oninput="updItem(${i},'description',this.value)">
       <div class="item-inputs">
-        <input class="input-field qty-input" type="number" min="1" placeholder="Qty" value="${item.quantity||1}" oninput="updItem(${i},'quantity',+this.value||1)">
-        <input class="input-field" type="text" placeholder="Unit price (opt)" value="${esc(item.unit_price||'')}" oninput="updItem(${i},'unit_price',this.value)">
+        <input class="input-field" placeholder="Barcode / SKU" value="${esc(it.barcode||'')}" oninput="updManual(${i},'barcode',this.value)" style="margin-bottom:0;flex:1;">
+        <input class="input-field qty-input" type="number" min="1" value="${it.quantity||1}" oninput="updManual(${i},'quantity',+this.value||1)" style="margin-bottom:0;">
       </div>
     </div>`).join('');
 }
 
-function updItem(i, f, v) { if (cur && cur.items[i]) cur.items[i][f] = v; }
-function removeItem(i) { cur.items.splice(i, 1); renderItemList(); }
+function updManual(i,f,v){if(cur.manualItems[i])cur.manualItems[i][f]=v;}
+function removeManual(i){cur.manualItems.splice(i,1);renderManualItems();}
 
-function camPhotoPackingList() {
-  openCam('photo', async res => {
-    if (res.type !== 'photo') return;
-    cur.packingListPhoto = res.value;
-    const img = document.getElementById('packing-img');
-    img.src = 'data:image/jpeg;base64,' + res.value;
-    img.classList.add('show');
-    await extractPackingList(res.value);
-  });
-}
+// ── REVIEW ──
+function goReview() {
+  const tv = document.getElementById('track-input').value.trim();
+  const ov = document.getElementById('order-input').value.trim();
+  if (!tv) { toast('Tracking number is required', 'error'); document.getElementById('track-input').focus(); return; }
+  if (!ov) { toast('Order number is required', 'error'); document.getElementById('order-input').focus(); return; }
+  cur.tracking = tv; cur.orderNumber = ov;
 
-async function extractPackingList(b64) {
-  const apiKey = cfg.apiKey || document.getElementById('api-key')?.value?.trim();
-  if (!apiKey) {
-    setAIStatus('packing-ai', 'error', '✕ No API key — add it in Config tab first');
-    return;
-  }
-  setAIStatus('packing-ai', 'processing', 'AI reading packing list...');
-  try {
-    const resp = await claudeVision(b64,
-      `Extract all line items from this packing list or invoice document. Respond ONLY with this JSON:
-{"items":[{"barcode":"","sku":"","description":"","quantity":1,"unit_price":""}],"po_number":"","invoice_number":"","total":""}`
-    );
-    const ex = JSON.parse(resp);
-    if (ex.items?.length) {
-      const existBC = new Set(cur.items.map(i => i.barcode).filter(Boolean));
-      ex.items.forEach(item => {
-        if (!item.barcode || !existBC.has(item.barcode)) cur.items.push(item);
-      });
-    }
-    if (ex.po_number) cur.po_number = ex.po_number;
-    if (ex.invoice_number) cur.invoice_number = ex.invoice_number;
-    if (ex.total) cur.total = ex.total;
-    renderItemList();
-    setAIStatus('packing-ai', 'done', `✓ Found ${ex.items?.length||0} items from packing list`);
-  } catch (e) {
-    const pmsg = e.message || 'Unknown error';
-    setAIStatus('packing-ai', 'error', '✕ ' + pmsg);
-    console.error('Packing list error:', e);
-  }
-}
+  const grouped = groupScans(cur.rawScans);
+  const uniqueCount = Object.keys(grouped).length;
+  const totalCount = cur.rawScans.length;
+  const manualItems = (cur.manualItems||[]).filter(i=>i.barcode);
+  const manualTotal = manualItems.reduce((s,i)=>s+(+i.quantity||1),0);
 
-// ── STEP 4 ──
-function renderReview() {
-  // Save any edits from step 2
-  const es = document.getElementById('edit-shipper').value;
-  const er = document.getElementById('edit-recipient').value;
-  if (es) cur.shipper_name = es;
-  if (er) cur.recipient_name = er;
+  document.getElementById('review-track').innerHTML = `
+    <div style="font-size:13px;color:var(--dim);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:1px;">TRACKING</div>
+    <div>${esc(cur.tracking)}</div>
+    <div style="font-size:13px;color:var(--dim);margin-top:10px;margin-bottom:4px;font-family:var(--font-mono);letter-spacing:1px;">ORDER NUMBER</div>
+    <div style="font-size:15px;">${esc(cur.orderNumber)}</div>`;
 
-  document.getElementById('review-track').textContent = cur.tracking || 'NO TRACKING';
-  document.getElementById('review-item-ct').textContent = cur.items.length;
+  document.getElementById('review-summary').innerHTML = `<div class="ext-box">
+    ${rRow('SCANNED BARCODES', totalCount + ' total')}
+    ${rRow('UNIQUE ITEMS', uniqueCount)}
+    ${rRow('MANUAL ENTRIES', manualTotal || '0')}
+    ${rRow('LABEL PHOTO', cur.labelPhoto ? '✓ CAPTURED' : '— NONE')}
+  </div>`;
 
-  document.getElementById('review-info').innerHTML = `
-    <div class="ext-box">
-      ${rRow('SHIPPER', cur.shipper_name)} ${rRow('SHIP FROM', cur.shipper_address)}
-      ${rRow('RECIPIENT', cur.recipient_name)} ${rRow('DELIVER TO', cur.recipient_address)}
-      ${rRow('WEIGHT', cur.weight)} ${rRow('SERVICE', cur.service_type)}
-      ${rRow('PO #', cur.po_number)} ${rRow('INVOICE #', cur.invoice_number)}
-      ${rRow('TOTAL', cur.total)}
-      ${rRow('LABEL PHOTO', cur.labelPhoto ? '✓ CAPTURED' : '— NONE')}
-      ${rRow('PACKING LIST', cur.packingListPhoto ? '✓ CAPTURED' : '— NONE')}
-    </div>`;
+  const sorted = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
+  const manualRows = manualItems.map(it =>
+    `<div class="ext-row"><span class="ext-v" style="text-align:left;max-width:70%;font-size:13px;color:var(--dim);">[MANUAL] ${esc(it.barcode)}</span><span class="ext-k" style="color:var(--accent);font-size:15px;">×${it.quantity||1}</span></div>`
+  ).join('');
+  document.getElementById('review-items').innerHTML = sorted.length || manualRows
+    ? sorted.map(([bc,qty]) =>
+        `<div class="ext-row"><span class="ext-v" style="text-align:left;max-width:70%;font-size:13px;">${esc(bc)}</span><span class="ext-k" style="color:var(--accent);font-size:15px;">×${qty}</span></div>`
+      ).join('') + manualRows
+    : '<div style="padding:14px;color:var(--dim);font-size:15px;text-align:center;">No items scanned yet</div>';
 
-  document.getElementById('review-items').innerHTML = cur.items.length
-    ? cur.items.map((it, i) => rRow(
-        it.barcode ? it.barcode.slice(-10) : 'ITEM ' + (i+1),
-        (it.description || 'No description') + ' ×' + (it.quantity||1)
-      )).join('')
-    : '<p style="color:var(--dim);font-size:13px;padding:8px 0;">No items recorded</p>';
+  goStep(2);
 }
 
 function rRow(k, v) {
   return `<div class="ext-row"><span class="ext-k">${k}</span><span class="ext-v">${esc(v||'—')}</span></div>`;
 }
 
+// ── SAVE & PRINT ──
 function savePackage() {
   cur.notes = document.getElementById('pkg-notes').value;
+
+  // Build cur.items from rawScans + manualItems
+  const grouped = groupScans(cur.rawScans);
+  cur.items = Object.entries(grouped).map(([barcode,quantity]) =>
+    ({ barcode, sku:'', description:'', quantity, unit_price:'' })
+  );
+  (cur.manualItems||[]).forEach(it => {
+    if (it.barcode) cur.items.push({ barcode:it.barcode, sku:'', description:'', quantity:it.quantity||1, unit_price:'' });
+  });
+
+  // Generate label photo filename
+  if (cur.labelPhoto) cur.labelPhotoName = generateLabelPhotoName(cur.orderNumber, cur.receivedAt);
+
   pkgs.push(cur);
   savePkgs();
   toast('✓ Package saved', 'success');
   if (cfg.webhookUrl) uploadPkg(cur);
+
+  const savedPkg = cur;
   cur = null;
   renderDash();
   showTab('log');
+  setTimeout(() => printReceipt(savedPkg), 400);
+}
+
+function generateLabelPhotoName(orderNum, isoDate) {
+  let ord = String(orderNum||'UNKNOWN').replace(/[^a-zA-Z0-9]/g,'');
+  if (ord.length > 12) ord = ord.slice(ord.length - 12); // truncate from left
+  ord = ord.slice(0, 12);
+  const d = new Date(isoDate);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(-2);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mn = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `PHSL${ord}${mm}${dd}${yy}_${hh}${mn}${ss}.jpg`;
+}
+
+function printReceipt(pkg) {
+  const grouped = groupScans(pkg.rawScans||[]);
+  const entries = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
+  const uniqueCount = entries.length;
+  const totalScanned = (pkg.rawScans||[]).length;
+  const manualItems = (pkg.manualItems||[]).filter(i=>i.barcode);
+  const manualTotal = manualItems.reduce((s,i)=>s+(+i.quantity||1),0);
+  const grandTotal = totalScanned + manualTotal;
+  const allUnique = uniqueCount + manualItems.length;
+  const d = new Date(pkg.receivedAt);
+  const dateStr = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+
+  const manifestRows = entries.map(([bc,qty]) =>
+    `<div class="row"><span class="bc">${bc}</span><span class="qty">${qty}</span></div>`
+  ).join('');
+  const manualRows = manualItems.map(it =>
+    `<div class="row"><span class="bc">${it.barcode}</span><span class="qty">${it.quantity||1}</span></div>`
+  ).join('');
+
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>PackTrack — ${pkg.tracking||''}</title>
+<style>
+@page{size:6in 4in;margin:.18in;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Courier New',monospace;font-size:9pt;width:5.64in;color:#000;background:#fff;}
+.header{border-bottom:2.5px solid #000;padding-bottom:5pt;margin-bottom:5pt;display:flex;justify-content:space-between;align-items:flex-end;}
+.title{font-size:12pt;font-weight:bold;letter-spacing:2px;}
+.sub{font-size:7.5pt;color:#444;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:3pt;margin-bottom:5pt;padding-bottom:5pt;border-bottom:1px dashed #999;}
+.info-item .lbl{font-size:6.5pt;text-transform:uppercase;color:#666;letter-spacing:1px;}
+.info-item .val{font-size:9pt;font-weight:bold;word-break:break-all;line-height:1.2;}
+.section-title{font-size:7.5pt;font-weight:bold;text-transform:uppercase;letter-spacing:1.5px;background:#eee;padding:2pt 4pt;margin:4pt 0 2pt;}
+.row{display:flex;justify-content:space-between;align-items:center;padding:1.5pt 0;border-bottom:1px solid #eee;font-size:8.5pt;}
+.row:last-child{border-bottom:none;}
+.bc{font-family:'Courier New',monospace;word-break:break-all;}
+.qty{font-weight:bold;min-width:20pt;text-align:right;padding-left:6pt;}
+.summary{margin-top:5pt;padding-top:4pt;border-top:2px solid #000;display:flex;justify-content:space-between;font-size:9pt;font-weight:bold;}
+.footer{margin-top:4pt;font-size:6.5pt;color:#999;text-align:center;}
+</style>
+</head><body>
+<div class="header">
+  <div><div class="title">PACKTRACK RECEIPT</div><div class="sub">${dateStr}</div></div>
+</div>
+<div class="info-grid">
+  <div class="info-item"><div class="lbl">Tracking #</div><div class="val">${pkg.tracking||'—'}</div></div>
+  <div class="info-item"><div class="lbl">Order #</div><div class="val">${pkg.orderNumber||'—'}</div></div>
+  <div class="info-item"><div class="lbl">Unique SKUs</div><div class="val">${allUnique}</div></div>
+  <div class="info-item"><div class="lbl">Total Count</div><div class="val">${grandTotal}</div></div>
+  <div class="info-item"><div class="lbl">Label Photo</div><div class="val">${pkg.labelPhoto?'YES':'NO'}</div></div>
+  <div class="info-item"><div class="lbl">Photo File</div><div class="val" style="font-size:6.5pt;">${pkg.labelPhotoName||'—'}</div></div>
+</div>
+<div class="section-title">MANIFEST</div>
+${manifestRows}${manualRows}
+<div class="summary">
+  <span>${allUnique} product${allUnique!==1?'s':''} scanned</span>
+  <span>Total count: ${grandTotal}</span>
+</div>
+<div class="footer">PackTrack · Made with love by Don</div>
+<script>setTimeout(()=>window.print(),300);<\/script>
+</body></html>`;
+
+  const w = window.open('','_blank','width=700,height=520');
+  if (w) { w.document.write(html); w.document.close(); }
+  else toast('Allow popups to print receipt', 'error');
 }
 
 // ════════════════════════════════════════
@@ -817,33 +938,32 @@ function viewPkg(id) {
   const p = pkgs.find(x => x.id === id);
   if (!p) return;
   document.getElementById('detail-title').textContent = p.tracking || 'PACKAGE';
+  // Build grouped manifest from rawScans or legacy items
+  const pGrouped = groupScans ? groupScans(p.rawScans||[]) : {};
+  const pEntries = Object.entries(pGrouped).sort((a,b)=>b[1]-a[1]);
+  const legacyItems = (p.items||[]).filter(it=>!pGrouped[it.barcode]);
+  const totalScanned = (p.rawScans||[]).length || (p.items||[]).reduce((s,i)=>s+(+i.quantity||1),0);
   document.getElementById('detail-content').innerHTML = `
     <div class="detail-section">
       <h3>SHIPMENT INFO</h3>
-      ${dRow('Tracking', p.tracking)} ${dRow('Received', fmtDate(p.receivedAt))}
-      ${dRow('Shipper', p.shipper_name)} ${dRow('Ship From', p.shipper_address)}
-      ${dRow('Recipient', p.recipient_name)} ${dRow('Deliver To', p.recipient_address)}
-      ${dRow('Weight', p.weight)} ${dRow('Service', p.service_type)}
+      ${dRow('Tracking', p.tracking)} ${dRow('Order #', p.orderNumber||p.po_number)}
+      ${dRow('Received', fmtDate(p.receivedAt))} ${dRow('Total Scanned', totalScanned)}
+      ${dRow('Label Photo', p.labelPhoto?'YES — '+esc(p.labelPhotoName||''):'NO')}
     </div>
     ${p.labelPhoto ? `<div class="detail-section"><h3>SHIPPING LABEL</h3><img class="photo-full" src="data:image/jpeg;base64,${p.labelPhoto}"></div>` : ''}
     <div class="detail-section">
-      <h3>ORDER DETAILS</h3>
-      ${dRow('PO Number', p.po_number)} ${dRow('Invoice', p.invoice_number)} ${dRow('Total', p.total)}
+      <h3>MANIFEST — ${pEntries.length + legacyItems.length} UNIQUE · ${totalScanned} TOTAL</h3>
+      ${pEntries.length ? pEntries.map(([bc,qty]) => dRow(bc, '×'+qty)).join('') :
+        legacyItems.length ? legacyItems.map(it=>dRow(it.barcode||it.sku||'—','×'+(it.quantity||1))).join('') :
+        '<div style="padding:10px 14px;color:var(--dim);font-size:14px;">No items recorded</div>'}
     </div>
-    <div class="detail-section">
-      <h3>MANIFEST — ${p.items.length} ITEMS</h3>
-      ${p.items.length ? p.items.map(it => dRow(
-        it.barcode || it.sku || '—',
-        (it.description || 'No description') + ' ×' + (it.quantity||1) + (it.unit_price ? ' @ '+it.unit_price : '')
-      )).join('') : '<div style="padding:10px 14px;color:var(--dim);font-size:13px;">No items recorded</div>'}
-    </div>
-    ${p.packingListPhoto ? `<div class="detail-section"><h3>PACKING LIST</h3><img class="photo-full" src="data:image/jpeg;base64,${p.packingListPhoto}"></div>` : ''}
-    ${p.notes ? `<div class="detail-section"><h3>NOTES</h3><div style="padding:10px 14px;font-size:13px;">${esc(p.notes)}</div></div>` : ''}
+    ${p.notes ? `<div class="detail-section"><h3>NOTES</h3><div style="padding:12px 16px;font-size:15px;">${esc(p.notes)}</div></div>` : ''}
     <div class="btn-row" style="margin-top:4px;">
+      <button class="btn btn-secondary" onclick="printReceipt(pkgs.find(x=>x.id==='${p.id}'))">🖨 PRINT</button>
       <button class="btn btn-secondary" onclick="exportSingle('${p.id}')">↓ CSV</button>
       ${cfg.webhookUrl ? `<button class="btn btn-secondary" onclick="uploadPkg(pkgs.find(x=>x.id==='${p.id}'))">↑ SYNC</button>` : ''}
     </div>
-    <button class="btn btn-danger" style="margin-top:8px;" onclick="deletePkg('${p.id}')">✕ DELETE PACKAGE</button>
+    <button class="btn btn-danger" style="margin-top:10px;" onclick="deletePkg('${p.id}')">✕ DELETE PACKAGE</button>
   `;
   showView('detail');
 }
@@ -1013,7 +1133,7 @@ async function claudeVision(b64, prompt) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1000,
       messages: [{
         role: 'user',
@@ -1024,8 +1144,18 @@ async function claudeVision(b64, prompt) {
       }]
     })
   });
-  if (!resp.ok) throw new Error('API error ' + resp.status);
+  if (!resp.ok) {
+    let detail = '';
+    try {
+      const errData = await resp.json();
+      detail = errData.error?.message || JSON.stringify(errData);
+    } catch(e) {
+      try { detail = await resp.text(); } catch(e2) {}
+    }
+    throw new Error('API ' + resp.status + ': ' + (detail || 'no details').slice(0, 300));
+  }
   const data = await resp.json();
+  if (!data.content || !data.content[0]) throw new Error('Empty response from API');
   return data.content[0].text.replace(/```json|```/g, '').trim();
 }
 
