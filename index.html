@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- PackTrack Pro · v.260417.204635 · Made with love by Don -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -267,6 +268,40 @@ body{
 .scan-recent-item{color:var(--text);padding:4px 0;border-bottom:1px solid var(--s3);display:flex;justify-content:space-between;align-items:center;}
 .scan-recent-item:last-child{border-bottom:none;}
 
+
+/* ── RECEIPT VIEW (screen) ── */
+.rcp-screen-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--s1);border-bottom:2px solid var(--border2);position:sticky;top:0;z-index:10;}
+#rcp-printable{padding:18px 20px;font-family:'Courier New',monospace;}
+.rcp-line1{font-size:13px;color:var(--text);margin-bottom:6px;font-weight:bold;border-bottom:1px solid var(--border2);padding-bottom:6px;}
+.rcp-line{font-size:15px;color:var(--text);margin-bottom:4px;word-break:break-all;}
+.rcp-divider{font-size:15px;color:var(--dim);letter-spacing:2px;margin:10px 0;}
+.rcp-manifest{}
+.rcp-row{display:flex;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--s3);font-family:'Courier New',monospace;font-size:14px;}
+.rcp-row:last-child{border-bottom:none;}
+.rcp-linenum{color:var(--dim);flex-shrink:0;font-size:13px;}
+.rcp-bc{color:var(--text);flex:1;word-break:break-all;}
+.rcp-eq{color:var(--dim);flex-shrink:0;}
+.rcp-qty{color:var(--accent);font-weight:bold;flex-shrink:0;}
+
+/* ── RECEIPT PRINT STYLES ── */
+@media print {
+  @page{size:6in 4in;margin:.2in;}
+  body > *{display:none!important;}
+  #app{display:block!important;}
+  #app > *{display:none!important;}
+  #main-scroll{display:block!important;overflow:visible!important;}
+  #view-receipt{display:block!important;padding:0!important;}
+  .rcp-screen-bar{display:none!important;}
+  #rcp-printable{display:block!important;padding:.1in .15in!important;background:#fff!important;}
+  .rcp-line1{font-size:8pt!important;color:#000!important;border-color:#000!important;}
+  .rcp-line{font-size:10pt!important;color:#000!important;font-weight:bold!important;}
+  .rcp-divider{font-size:9pt!important;color:#000!important;letter-spacing:0!important;margin:6pt 0!important;}
+  .rcp-row{font-size:8.5pt!important;padding:3pt 0!important;border-color:#ccc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .rcp-linenum{color:#666!important;}
+  .rcp-bc{color:#000!important;}
+  .rcp-eq{color:#666!important;}
+  .rcp-qty{color:#000!important;font-weight:bold!important;}
+}
 </style>
 </head>
 <body>
@@ -274,14 +309,15 @@ body{
 
   <!-- TOP BAR -->
   <div id="topbar">
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="showTab('log')" title="Go to log">
       <img src="data:image/jpeg;base64,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" alt="QH" style="height:38px;width:auto;object-fit:contain;">
       <div>
         <div class="topbar-logo">PACKTRACK</div>
-        <div class="topbar-sub">Made with love by Don &nbsp;·&nbsp; <span style="color:var(--dim2)">v.260417.181114</span></div>
+        <div class="topbar-sub">Made with love by Don &nbsp;·&nbsp; <span style="color:var(--dim2)">v.260417.204635</span></div>
       </div>
     </div>
     <div class="topbar-actions">
+      <button class="nav-pill" onclick="hardRefresh()" title="Force reload — clears cache">↺</button>
       <button class="nav-pill" onclick="exportCSV()">↓ CSV</button>
       <button class="nav-pill" onclick="showTab('settings')">⚙</button>
     </div>
@@ -366,8 +402,16 @@ body{
                 onfocus="setActiveField('fg-scanbox');document.getElementById('scan-box-wrap').classList.add('scanning');"
                 onblur="clearActiveField();document.getElementById('scan-box-wrap').classList.remove('scanning');">
             </div>
-            <div class="scan-count" id="scan-count">0</div>
-            <div class="scan-count-lbl">ITEMS SCANNED</div>
+            <div style="display:flex;justify-content:space-around;align-items:flex-end;margin:4px 0;">
+              <div style="text-align:center;">
+                <div class="scan-count" id="scan-count">0</div>
+                <div class="scan-count-lbl">TOTAL SCANNED</div>
+              </div>
+              <div style="text-align:center;">
+                <div class="scan-count" id="scan-unique" style="color:var(--green);">0</div>
+                <div class="scan-count-lbl" style="color:var(--green);">UNIQUE ITEMS</div>
+              </div>
+            </div>
             <div class="scan-recent" id="scan-recent">
               <div style="color:var(--dim2);font-size:12px;text-align:center;padding:8px 0;">Scans will appear here</div>
             </div>
@@ -406,6 +450,11 @@ body{
         <div class="wizard-title" id="detail-title">PACKAGE</div>
       </div>
       <div id="detail-content"></div>
+    </div>
+
+    <!-- ═══ RECEIPT ═══ -->
+    <div id="view-receipt" class="view" style="padding:0;">
+      <div id="receipt-content"></div>
     </div>
 
     <!-- ═══ SETTINGS ═══ -->
@@ -517,7 +566,7 @@ function showTab(t) {
     document.getElementById('tab-' + id)?.classList.remove('active');
   });
   const views = {log:'dashboard', settings:'settings'};
-  ['dashboard','wizard','detail','settings'].forEach(v => {
+  ['dashboard','wizard','detail','settings','receipt'].forEach(v => {
     document.getElementById('view-' + v).classList.remove('active');
   });
   if (t === 'log') {
@@ -531,7 +580,7 @@ function showTab(t) {
 }
 
 function showView(v) {
-  ['dashboard','wizard','detail','settings'].forEach(x => {
+  ['dashboard','wizard','detail','settings','receipt'].forEach(x => {
     document.getElementById('view-' + x).classList.remove('active');
   });
   document.getElementById('view-' + v).classList.add('active');
@@ -609,6 +658,7 @@ function resetWizardUI() {
   setAIStatus('label-ai', '');
   document.getElementById('scan-box-input').value = '';
   document.getElementById('scan-count').textContent = '0';
+  document.getElementById('scan-unique').textContent = '0';
   document.getElementById('scan-recent').innerHTML = '<div style="color:var(--dim2);font-size:12px;text-align:center;padding:8px 0;">Scans will appear here</div>';
   document.getElementById('manual-items').innerHTML = '';
   document.getElementById('pkg-notes').value = '';
@@ -735,12 +785,14 @@ function addBarcodeScan() {
 }
 
 function updateScanDisplay() {
+  const grouped = groupScans(cur.rawScans);
+  const uniqueCount = Object.keys(grouped).length;
   document.getElementById('scan-count').textContent = cur.rawScans.length;
+  document.getElementById('scan-unique').textContent = uniqueCount;
   if (!cur.rawScans.length) {
     document.getElementById('scan-recent').innerHTML = '<div style="color:var(--dim2);font-size:12px;text-align:center;padding:8px 0;">Scans will appear here</div>';
     return;
   }
-  const grouped = groupScans(cur.rawScans);
   const recent = [...new Set(cur.rawScans.slice().reverse())].slice(0, 6);
   document.getElementById('scan-recent').innerHTML = recent.map(bc =>
     `<div class="scan-recent-item"><span>${esc(bc)}</span><span style="color:var(--accent);font-weight:bold;">×${grouped[bc]}</span></div>`
@@ -848,7 +900,7 @@ function savePackage() {
   cur = null;
   renderDash();
   showTab('log');
-  setTimeout(() => printReceipt(savedPkg), 400);
+  printReceipt(savedPkg);
 }
 
 function generateLabelPhotoName(orderNum, isoDate) {
@@ -867,68 +919,39 @@ function generateLabelPhotoName(orderNum, isoDate) {
 
 function printReceipt(pkg) {
   const grouped = groupScans(pkg.rawScans||[]);
-  const entries = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
-  const uniqueCount = entries.length;
-  const totalScanned = (pkg.rawScans||[]).length;
+  const allEntries = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
   const manualItems = (pkg.manualItems||[]).filter(i=>i.barcode);
-  const manualTotal = manualItems.reduce((s,i)=>s+(+i.quantity||1),0);
-  const grandTotal = totalScanned + manualTotal;
-  const allUnique = uniqueCount + manualItems.length;
+  // Merge manual into entries list
+  manualItems.forEach(it => {
+    const existing = allEntries.find(([bc])=>bc===it.barcode);
+    if (existing) existing[1] += (+it.quantity||1);
+    else allEntries.push([it.barcode, +it.quantity||1]);
+  });
+  const allUnique = allEntries.length;
+  const grandTotal = allEntries.reduce((s,[,q])=>s+q, 0);
   const d = new Date(pkg.receivedAt);
   const dateStr = `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 
-  const manifestRows = entries.map(([bc,qty]) =>
-    `<div class="row"><span class="bc">${bc}</span><span class="qty">${qty}</span></div>`
-  ).join('');
-  const manualRows = manualItems.map(it =>
-    `<div class="row"><span class="bc">${it.barcode}</span><span class="qty">${it.quantity||1}</span></div>`
+  const manifestRows = allEntries.map(([bc,qty], i) =>
+    `<div class="rcp-row"><span class="rcp-linenum">${i+1}.&nbsp;&nbsp;</span><span class="rcp-bc">${esc(bc)}</span><span class="rcp-eq">&nbsp;&nbsp;=&nbsp;&nbsp;</span><span class="rcp-qty">${qty}</span></div>`
   ).join('');
 
-  const html = `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>PackTrack — ${pkg.tracking||''}</title>
-<style>
-@page{size:6in 4in;margin:.18in;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Courier New',monospace;font-size:9pt;width:5.64in;color:#000;background:#fff;}
-.header{border-bottom:2.5px solid #000;padding-bottom:5pt;margin-bottom:5pt;display:flex;justify-content:space-between;align-items:flex-end;}
-.title{font-size:12pt;font-weight:bold;letter-spacing:2px;}
-.sub{font-size:7.5pt;color:#444;}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:3pt;margin-bottom:5pt;padding-bottom:5pt;border-bottom:1px dashed #999;}
-.info-item .lbl{font-size:6.5pt;text-transform:uppercase;color:#666;letter-spacing:1px;}
-.info-item .val{font-size:9pt;font-weight:bold;word-break:break-all;line-height:1.2;}
-.section-title{font-size:7.5pt;font-weight:bold;text-transform:uppercase;letter-spacing:1.5px;background:#eee;padding:2pt 4pt;margin:4pt 0 2pt;}
-.row{display:flex;justify-content:space-between;align-items:center;padding:1.5pt 0;border-bottom:1px solid #eee;font-size:8.5pt;}
-.row:last-child{border-bottom:none;}
-.bc{font-family:'Courier New',monospace;word-break:break-all;}
-.qty{font-weight:bold;min-width:20pt;text-align:right;padding-left:6pt;}
-.summary{margin-top:5pt;padding-top:4pt;border-top:2px solid #000;display:flex;justify-content:space-between;font-size:9pt;font-weight:bold;}
-.footer{margin-top:4pt;font-size:6.5pt;color:#999;text-align:center;}
-</style>
-</head><body>
-<div class="header">
-  <div><div class="title">PACKTRACK RECEIPT</div><div class="sub">${dateStr}</div></div>
-</div>
-<div class="info-grid">
-  <div class="info-item"><div class="lbl">Tracking #</div><div class="val">${pkg.tracking||'—'}</div></div>
-  <div class="info-item"><div class="lbl">Order #</div><div class="val">${pkg.orderNumber||'—'}</div></div>
-  <div class="info-item"><div class="lbl">Unique SKUs</div><div class="val">${allUnique}</div></div>
-  <div class="info-item"><div class="lbl">Total Count</div><div class="val">${grandTotal}</div></div>
-  <div class="info-item"><div class="lbl">Label Photo</div><div class="val">${pkg.labelPhoto?'YES':'NO'}</div></div>
-  <div class="info-item"><div class="lbl">Photo File</div><div class="val" style="font-size:6.5pt;">${pkg.labelPhotoName||'—'}</div></div>
-</div>
-<div class="section-title">MANIFEST</div>
-${manifestRows}${manualRows}
-<div class="summary">
-  <span>${allUnique} product${allUnique!==1?'s':''} scanned</span>
-  <span>Total count: ${grandTotal}</span>
-</div>
-<div class="footer">PackTrack · Made with love by Don</div>
-<script>setTimeout(()=>window.print(),300);<\/script>
-</body></html>`;
+  document.getElementById('receipt-content').innerHTML = `
+    <div class="rcp-screen-bar">
+      <button class="back-btn" onclick="showTab('log')">←</button>
+      <span style="font-family:var(--font-mono);font-size:15px;color:var(--accent);">RECEIPT</span>
+      <button class="btn btn-primary btn-sm" style="width:auto;" onclick="window.print()">🖨 PRINT</button>
+    </div>
+    <div id="rcp-printable">
+      <div class="rcp-line1">PACKTRACK &nbsp;&nbsp; ${dateStr}</div>
+      <div class="rcp-line">TRK: ${esc(pkg.tracking||'—')}</div>
+      <div class="rcp-line">ORD: ${esc(pkg.orderNumber||'—')}</div>
+      <div class="rcp-line">${allUnique} SKUS &nbsp;/&nbsp; ${grandTotal} ITEMS</div>
+      <div class="rcp-divider">********************</div>
+      <div class="rcp-manifest">${manifestRows}</div>
+    </div>`;
 
-  const w = window.open('','_blank','width=700,height=520');
-  if (w) { w.document.write(html); w.document.close(); }
-  else toast('Allow popups to print receipt', 'error');
+  showView('receipt');
 }
 
 // ════════════════════════════════════════
@@ -1354,6 +1377,14 @@ function ok(d) {
 //  HELPERS
 // ════════════════════════════════════════
 function savePkgs() { localStorage.setItem('pt_packages', JSON.stringify(pkgs)); }
+
+function hardRefresh() {
+  if (!confirm('Force reload the app? This clears the browser cache for this page.')) return;
+  // Add a cache-busting param then reload
+  const url = new URL(window.location.href);
+  url.searchParams.set('v', Date.now());
+  window.location.href = url.toString();
+}
 
 function setAIStatus(id, state, msg) {
   const el = document.getElementById(id);
