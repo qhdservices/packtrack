@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>PackTrack Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -172,7 +173,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 #cam-modal.open{display:flex;}
 #cam-video{flex:1;width:100%;object-fit:cover;}
 .cam-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.scan-frame{width:min(94vw,400px);height:72px;border:2px solid var(--accent);border-radius:6px;position:relative;box-shadow:0 0 0 3000px rgba(0,0,0,.6);}
+.scan-frame::before,.scan-frame::after{content:'';position:absolute;width:14px;height:14px;border-color:var(--accent2);border-style:solid;}
+.scan-frame::before{top:-2px;left:-2px;border-width:3px 0 0 3px;border-radius:3px 0 0 0;}
+.scan-frame::after{top:-2px;right:-2px;border-width:3px 3px 0 0;border-radius:0 3px 0 0;}
+.scan-line{position:absolute;left:4px;right:4px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scanmove 1.6s ease-in-out infinite;}
+@keyframes scanmove{0%{top:6px;opacity:1}50%{top:60px;opacity:.5}100%{top:6px;opacity:1}}
 .photo-frame{width:min(90vw,360px);height:220px;border:2px solid rgba(255,255,255,.45);border-radius:8px;box-shadow:0 0 0 3000px rgba(0,0,0,.5);}
+.cam-detect-flash{position:absolute;inset:0;background:rgba(245,158,11,.3);animation:detectflash .3s ease-out forwards;}
+@keyframes detectflash{0%{opacity:1}100%{opacity:0}}
 .cam-label{margin-top:18px;font-family:var(--font-mono);font-size:12px;color:rgba(255,255,255,.65);text-align:center;}
 .cam-bar{position:absolute;bottom:0;left:0;right:0;padding:20px 24px 36px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to top,rgba(0,0,0,.85) 0%,transparent 100%);}
 .shutter{width:68px;height:68px;border-radius:50%;background:#fff;border:4px solid rgba(255,255,255,.35);cursor:pointer;box-shadow:0 0 0 2px rgba(255,255,255,.2);}
@@ -243,8 +252,10 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <div class="wizard-step active" id="wz-step-1">
         <div class="card">
           <div class="card-title">■ TRACKING NUMBER</div>
-          <p style="font-size:12px;color:var(--dim);margin-bottom:10px;">Tap the field and use your keyboard barcode scanner or type manually.</p>
-          <input class="input-field" id="track-input" placeholder="1Z000000000000000" autocomplete="off" autocorrect="off" spellcheck="false">
+          <div class="input-row">
+            <input class="input-field" id="track-input" placeholder="1Z000000000000000" autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:0;">
+            <button class="icon-btn" onclick="camScanTracking()" title="Scan barcode">⬚</button>
+          </div>
         </div>
         <button class="btn btn-primary" onclick="confirmTracking()">CONFIRM TRACKING →</button>
       </div>
@@ -278,23 +289,22 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
       <!-- STEP 3: ITEMS -->
       <div class="wizard-step" id="wz-step-3">
         <div class="card">
-          <div class="card-title">■ ITEM MANIFEST</div>
-          <p style="font-size:12px;color:var(--dim);margin-bottom:10px;">Scan barcode with your keyboard scanner app or type it, then tap ＋.</p>
-          <div class="input-row" style="margin-bottom:8px;">
-            <input class="input-field" id="barcode-input" placeholder="Scan or type barcode..." autocomplete="off" autocorrect="off" spellcheck="false" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addItemFromInput()">
-            <button class="icon-btn" onclick="addItemFromInput()">＋</button>
-          </div>
-          <button class="btn btn-ghost btn-sm" style="width:auto;margin-bottom:8px;" onclick="addItemManual()">+ ADD BLANK ITEM</button>
-          <div id="item-list" style="margin-top:4px;"></div>
-          <p id="no-items-msg" style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--dim2);padding:14px 0;">NO ITEMS ADDED YET</p>
-        </div>
-        <div class="card">
           <div class="card-title">■ PACKING LIST / INVOICE</div>
           <img id="packing-img" class="photo-thumb" alt="Packing list">
           <button class="btn btn-secondary" onclick="camPhotoPackingList()">📷  PHOTOGRAPH PACKING LIST</button>
           <div class="ai-status" id="packing-ai">
             <div class="spinner"></div><span id="packing-ai-msg">AI reading items...</span>
           </div>
+        </div>
+        <div class="card">
+          <div class="card-title">■ ITEM MANIFEST</div>
+          <div class="mode-pill"><div class="pulse-dot"></div>SCAN READY</div>
+          <div class="btn-row">
+            <button class="btn btn-secondary" onclick="camScanItem()">⬚  SCAN BARCODE</button>
+            <button class="btn btn-ghost btn-sm" style="flex:none;width:auto;padding:13px 14px;" onclick="addItemManual()">+ MANUAL</button>
+          </div>
+          <div id="item-list" style="margin-top:12px;"></div>
+          <p id="no-items-msg" style="text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--dim2);padding:14px 0;">NO ITEMS ADDED YET</p>
         </div>
         <button class="btn btn-primary" style="margin-top:4px;" onclick="goStep(4)">REVIEW MANIFEST →</button>
       </div>
@@ -390,15 +400,15 @@ html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);fon
 <div id="cam-modal">
   <video id="cam-video" autoplay playsinline muted></video>
   <div class="cam-overlay" id="cam-overlay">
-    <div id="cam-frame" class="photo-frame"></div>
-    <div class="cam-label" id="cam-label">TAP BUTTON TO CAPTURE</div>
+    <div id="cam-frame" class="scan-frame"><div class="scan-line"></div></div>
+    <div class="cam-label" id="cam-label">ALIGN BARCODE WITHIN FRAME</div>
   </div>
   <div class="cam-bar">
     <button class="cam-cancel" onclick="closeCam()">CANCEL</button>
-    <div id="shutter-wrap">
+    <div id="shutter-wrap" style="display:none;">
       <button class="shutter" id="shutter" onclick="fireShutter()"></button>
     </div>
-    <div style="width:70px;"></div>
+    <button class="cam-manual" id="cam-manual-btn" onclick="manualBarcodeEntry()">TYPE IT</button>
   </div>
 </div>
 
@@ -414,8 +424,10 @@ let cfg = JSON.parse(localStorage.getItem('pt_cfg') || '{"webhookUrl":""}');
 let cur = null; // current package being built
 let step = 1;
 let toastT = null;
+let camMode = 'photo';
 let camCallback = null;
 let camStream = null;
+let zxReader = null;
 
 // ════════════════════════════════════════
 //  INIT
@@ -554,7 +566,14 @@ function goStep(s) {
 }
 
 // ── STEP 1 ──
-// camScanTracking removed — use keyboard scanner in text field
+function camScanTracking() {
+  openCam('scan-tracking', res => {
+    if (res.type === 'barcode') {
+      document.getElementById('track-input').value = res.value;
+      toast('✓ Scanned: ' + res.value.slice(0,20), 'success');
+    }
+  });
+}
 
 function confirmTracking() {
   const v = document.getElementById('track-input').value.trim();
@@ -606,15 +625,13 @@ async function extractLabel(b64) {
 }
 
 // ── STEP 3 ──
-function addItemFromInput() {
-  const input = document.getElementById('barcode-input');
-  const val = input.value.trim();
-  if (!val) { toast('Enter or scan a barcode first', 'error'); return; }
-  cur.items.push({ barcode: val, sku: '', description: '', quantity: 1, unit_price: '' });
-  input.value = '';
-  input.focus();
-  renderItemList();
-  toast('✓ Item added: ' + val.slice(0, 16), 'success');
+function camScanItem() {
+  openCam('scan-item', res => {
+    if (res.type !== 'barcode') return;
+    cur.items.push({ barcode: res.value, sku: '', description: '', quantity: 1, unit_price: '' });
+    renderItemList();
+    toast('✓ Item scanned', 'success');
+  });
 }
 
 function addItemManual() {
@@ -785,16 +802,47 @@ function openCam(mode, cb) {
   closeCam();
   camMode = mode;
   camCallback = cb;
-  const modal = document.getElementById('cam-modal');
-  modal.classList.add('open');
+  document.getElementById('cam-modal').classList.add('open');
   document.body.style.overflow = 'hidden';
   const frame = document.getElementById('cam-frame');
-  frame.className = 'photo-frame';
-  frame.innerHTML = '';
-  document.getElementById('cam-label').textContent = 'TAP BUTTON TO CAPTURE';
-  document.getElementById('shutter-wrap').style.display = 'block';
-  document.getElementById('cam-manual-btn').style.display = 'none';
-  startPhotoStream();
+  const lbl = document.getElementById('cam-label');
+  const shutterWrap = document.getElementById('shutter-wrap');
+  const manualBtn = document.getElementById('cam-manual-btn');
+  if (mode === 'scan-tracking' || mode === 'scan-item') {
+    frame.className = 'scan-frame';
+    frame.innerHTML = '<div class="scan-line"></div>';
+    lbl.textContent = mode === 'scan-tracking' ? 'ALIGN BARCODE WITHIN FRAME' : 'SCAN ITEM BARCODE';
+    shutterWrap.style.display = 'none';
+    manualBtn.style.display = 'block';
+    startScan();
+  } else {
+    frame.className = 'photo-frame';
+    frame.innerHTML = '';
+    lbl.textContent = 'TAP BUTTON TO CAPTURE';
+    shutterWrap.style.display = 'block';
+    manualBtn.style.display = 'none';
+    startPhotoStream();
+  }
+}
+
+async function startScan() {
+  try {
+    if (!window.ZXing) throw new Error('Scanner not loaded');
+    zxReader = new ZXing.BrowserMultiFormatReader();
+    await zxReader.decodeFromVideoDevice(undefined, 'cam-video', (result, err) => {
+      if (result) {
+        const fl = document.createElement('div');
+        fl.className = 'cam-detect-flash';
+        document.getElementById('cam-overlay').appendChild(fl);
+        setTimeout(() => fl.remove(), 300);
+        const cb = camCallback;
+        closeCam();
+        cb && cb({ type: 'barcode', value: result.text });
+      }
+    });
+  } catch (e) {
+    document.getElementById('cam-label').textContent = 'CAMERA ERROR — USE "TYPE IT"';
+  }
 }
 
 async function startPhotoStream() {
@@ -828,6 +876,7 @@ function fireShutter() {
 function closeCam() {
   document.getElementById('cam-modal').classList.remove('open');
   document.body.style.overflow = '';
+  if (zxReader) { try { zxReader.reset(); } catch(e){} zxReader = null; }
   if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
   const vid = document.getElementById('cam-video');
   vid.srcObject = null;
@@ -836,6 +885,13 @@ function closeCam() {
 }
 
 
+
+function manualBarcodeEntry() {
+  const cb = camCallback;
+  closeCam();
+  const val = prompt('Type the barcode:');
+  if (val?.trim()) cb && cb({ type: 'barcode', value: val.trim() });
+}
 
 // ════════════════════════════════════════
 //  CLAUDE API
