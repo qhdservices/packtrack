@@ -463,14 +463,16 @@ body{
 
       <div class="settings-section">
         <h3>ANTHROPIC API KEY (FOR AI EXTRACTION)</h3>
-        <p class="step-note">Required for AI to read shipping labels and packing lists. Get your key at <b>console.anthropic.com</b> → API Keys. It is stored only on this device.</p>
+        <p class="step-note">Required for AI to read shipping labels. Get your key at <b>console.anthropic.com</b> → API Keys. Stored only on this device.</p>
         <label class="input-label">API Key</label>
-        <input class="input-field" id="api-key" type="password" placeholder="sk-ant-..." oninput="saveSettings()">
+        <input class="input-field" id="api-key" type="password" placeholder="sk-ant-...">
+        <button class="btn btn-primary" id="btn-save-api" onclick="saveApiKey()">SAVE API KEY</button>
+        <div class="ai-status" id="api-save-status" style="margin-top:8px;"></div>
       </div>
 
       <div class="settings-section">
         <h3>GOOGLE SHEETS + DRIVE SYNC</h3>
-        <p class="step-note">Deploy a Google Apps Script once and paste its URL below. PackTrack will upload package data to your spreadsheet and photos to Drive automatically after each save.</p>
+        <p class="step-note">Deploy a Google Apps Script once and paste its URL below. PackTrack will sync package data to your spreadsheet and photos to Drive after each save.</p>
         <div class="step-note">
           <b>Setup steps:</b><br>
           1. Go to <b>script.google.com</b> → New Project<br>
@@ -480,11 +482,16 @@ body{
           5. Copy the Web App URL and paste it here
         </div>
         <label class="input-label">Apps Script Web App URL</label>
-        <input class="input-field" id="webhook-url" placeholder="https://script.google.com/macros/s/..." oninput="saveSettings()">
+        <input class="input-field" id="webhook-url" placeholder="https://script.google.com/macros/s/...">
+        <button class="btn btn-primary" id="btn-save-webhook" onclick="saveWebhookUrl()">SAVE URL</button>
+        <div class="ai-status" id="webhook-save-status" style="margin-top:8px;"></div>
+        <div class="divider"></div>
         <div class="btn-row">
-          <button class="btn btn-secondary btn-sm" style="flex:none;width:auto;" onclick="testWebhook()">TEST</button>
+          <button class="btn btn-secondary btn-sm" style="flex:none;width:auto;" onclick="testWebhook()">TEST CONNECTION</button>
           <button class="btn btn-ghost btn-sm" style="flex:none;width:auto;" onclick="syncAll()">SYNC ALL PENDING</button>
         </div>
+        <div class="ai-status" id="test-status" style="margin-top:8px;"></div>
+        <p class="step-note" style="margin-top:10px;font-size:12px;">⚠ TEST must be run from your <b>GitHub Pages URL</b>, not from Claude.ai — the Claude artifact viewer blocks external network requests.</p>
         <div class="divider"></div>
         <button class="btn btn-ghost btn-sm" style="width:auto;" onclick="copyScript()">COPY APPS SCRIPT CODE</button>
         <div class="code-block" id="script-code"></div>
@@ -1211,8 +1218,14 @@ async function syncAll() {
 }
 
 async function testWebhook() {
-  const url = document.getElementById('webhook-url').value.trim();
-  if (!url) { toast('Enter a URL first', 'error'); return; }
+  const url = document.getElementById('webhook-url').value.trim() || cfg.webhookUrl;
+  const statusEl = document.getElementById('test-status');
+  if (!url) { toast('Save a URL first', 'error'); return; }
+  if (!url.startsWith('https://script.google.com')) {
+    setAIStatus('test-status', 'error', '✕ URL does not look like a Google Apps Script URL');
+    return;
+  }
+  setAIStatus('test-status', 'processing', 'Testing connection...');
   try {
     await fetch(url, {
       method: 'POST',
@@ -1220,8 +1233,11 @@ async function testWebhook() {
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({ test: true })
     });
-    toast('✓ Connected!', 'success');
-  } catch(e) { toast('✕ Cannot connect', 'error'); }
+    setAIStatus('test-status', 'done', '✓ Request sent — check your Google Sheet for a test row, or open the URL in a browser to confirm.');
+    toast('✓ Request sent', 'success');
+  } catch(e) {
+    setAIStatus('test-status', 'error', '✕ Network blocked — run this test from your GitHub Pages URL, not from Claude.ai');
+  }
 }
 
 // ════════════════════════════════════════
@@ -1283,9 +1299,30 @@ function dlCSV(name, rows) {
 //  SETTINGS
 // ════════════════════════════════════════
 function saveSettings() {
+  // Called on init load only — not on input anymore
   cfg.webhookUrl = document.getElementById('webhook-url').value.trim();
   cfg.apiKey = document.getElementById('api-key').value.trim();
   localStorage.setItem('pt_cfg', JSON.stringify(cfg));
+}
+
+function saveApiKey() {
+  const val = document.getElementById('api-key').value.trim();
+  if (!val) { setAIStatus('api-save-status','error','✕ Enter an API key first'); return; }
+  if (!val.startsWith('sk-ant-')) { setAIStatus('api-save-status','error','✕ Key should start with sk-ant-'); return; }
+  cfg.apiKey = val;
+  localStorage.setItem('pt_cfg', JSON.stringify(cfg));
+  setAIStatus('api-save-status','done','✓ API key saved to this device');
+  toast('✓ API key saved', 'success');
+}
+
+function saveWebhookUrl() {
+  const val = document.getElementById('webhook-url').value.trim();
+  if (!val) { setAIStatus('webhook-save-status','error','✕ Enter a URL first'); return; }
+  if (!val.startsWith('https://')) { setAIStatus('webhook-save-status','error','✕ URL must start with https://'); return; }
+  cfg.webhookUrl = val;
+  localStorage.setItem('pt_cfg', JSON.stringify(cfg));
+  setAIStatus('webhook-save-status','done','✓ URL saved to this device');
+  toast('✓ URL saved', 'success');
 }
 
 function clearAll() {
